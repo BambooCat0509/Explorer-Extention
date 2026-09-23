@@ -22,7 +22,7 @@ global g_ClickIsBlank := false
 	}
 	g_ClickX := x
 	g_ClickY := y
-	g_ClickIsBlank := IsBlankAreaUIA(x, y)
+	g_ClickIsBlank := IsBlankUIA(x, y)
 
 	SetTimer(EvaluateLButtonClicks, -g_ClickTimeout)
 }
@@ -48,7 +48,7 @@ EvaluateLButtonClicks() {
 
 MButton:: {
 	MouseGetPos(&x, &y)
-	if IsOverItemUIA(x, y) {
+	if IsItemUIA(x, y) {
 		Click(x, y, "Left")
 		Sleep(50)
 		Send("{F2}")
@@ -59,7 +59,7 @@ MButton:: {
 
 F2:: {
 	MouseGetPos(&x, &y)
-	if IsOverItemUIA(x, y) {
+	if IsItemUIA(x, y) {
 		Click(x, y, "Left")
 		Sleep(50)
 	}
@@ -83,11 +83,12 @@ GetUIAControlType(x, y) {
 }
 
 ; 空白處: ControlType = 50008 (List)
-IsBlankAreaUIA(x, y) {
+IsBlankUIA(x, y) {
 	return GetUIAControlType(x, y) = 50008
 }
 
+; 文字編輯區域: ControlType = 50004 (Edit)
 ; 檔案/資料夾圖示: ControlType = 50007 (ListItem)
-IsOverItemUIA(x, y) {
-	return GetUIAControlType(x, y) = 50007
+IsItemUIA(x, y) {
+	return (GetUIAControlType(x, y) = 50007 || GetUIAControlType(x, y) = 50004)
 }
