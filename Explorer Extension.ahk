@@ -15,12 +15,11 @@ if (!A_IsAdmin) {
 	ExitApp
 }
 
-Global LClickCount  := 0
-Global RClickCount  := 0
 Global X_LastClick  := 0
 Global Y_LastClick  := 0
+Global ClickCount   := 0
 Global ClickBias    := 5
-Global Interval     := 30
+Global Interval     := 5
 Global ClickTimeout := 250
 Global BlankClick   := false
 
@@ -28,10 +27,10 @@ Global BlankClick   := false
 
 	#InputLevel 1
 	
-		F2:: {
+		$F2:: {
 			MouseGetPos(&x, &y)
 		
-			if (IsItemUIA(x, y)) {
+			if (IsListItemUIA(x, y)) {
 				Click(x, y, "Left")
 				Sleep(Interval)
 			}
@@ -48,19 +47,32 @@ Global BlankClick   := false
 		$MButton:: {
 			MouseGetPos(&x, &y)
 		
-			if (IsItemUIA(x, y)) {
+			if (IsListItemUIA(x, y)) {
 				Click(x, y, "Left")
 				Sleep(Interval)
 				Send("{F2}")
+			} else if (element := IsTreeItemUIA(x, y)) {
+				if (GetTreeItemPosition(element, &x, &y)) {
+					Send("+{RButton}")
+					Sleep(Interval)
+					option := "M"
+				
+					if (MenuOptionCheck(option)) {
+						Send(option)
+					} else {
+						Send("{Escape}")
+					}
+				}
 			} else {
 				Click(x, y, "Middle")
 			}
 		}
 	
 		$+MButton:: {
+			KeyWait "Shift"
 			MouseGetPos(&x, &y)
 		
-			if (IsItemUIA(x, y)) {
+			if (IsListItemUIA(x, y)) {
 				if (IsFolderUIA(x, y)) {
 					Click(x, y, "Middle")
 				} else {
@@ -68,17 +80,21 @@ Global BlankClick   := false
 					Sleep(Interval)
 					Send("{F2}")
 				}
+			} else if (element := IsTreeItemUIA(x, y)) {
+				if (GetTreeItemPosition(element, &x, &y)) {
+					Click(x, y, "Middle")
+				}
 			} else {
-				Click(x, y, "Middle")
+				Send("+{MButton}")
 			}
 		}
 	
 		$^MButton:: {
+			KeyWait "Ctrl"
 			MouseGetPos(&x, &y, &WinID)
 		
-			if (IsItemUIA(x, y)) {
+			if (IsListItemUIA(x, y)) {
 				if (IsFolderUIA(x, y)) {
-					KeyWait "Ctrl"
 					Click(x, y, "Middle")
 					Sleep(Interval)
 					SwitchExplorerTab(WinID)
@@ -87,8 +103,35 @@ Global BlankClick   := false
 					Sleep(Interval)
 					Send("{F2}")
 				}
+			} else if (element := IsTreeItemUIA(x, y)) {
+				if (GetTreeItemPosition(element, &x, &y)) {
+					Click(x, y, "Middle")
+				}
+				Sleep(Interval)
+				SwitchExplorerTab(WinID)
 			} else {
-				Click(x, y, "Middle")
+				Send("^{MButton}")
+			}
+		}
+	
+		$!MButton:: {
+			KeyWait "Alt"
+			MouseGetPos(&x, &y, &WinID)
+		
+			if (element := IsTreeItemUIA(x, y)) {
+				if (GetTreeItemPosition(element, &x, &y)) {
+					Send("+{RButton}")
+					Sleep(Interval)
+					option := "R"
+				
+					if (MenuOptionCheck(option)) {
+						Send(option)
+					} else {
+						Send("{Escape}")
+					}
+				}
+			} else {
+				Send("!{MButton}")
 			}
 		}
 	
@@ -96,24 +139,24 @@ Global BlankClick   := false
 
 #HotIf (IsExplorerTarget() || IsFuncMenuTarget())
 
-	~RButton::
-	~LButton:: {
-		Global LClickCount, ClickBias, X_LastClick, Y_LastClick, ClickTimeout, BlankClick
+	$~RButton::
+	$~LButton:: {
+		Global ClickCount, ClickBias, X_LastClick, Y_LastClick, ClickTimeout, BlankClick
 	
 		MouseGetPos(&x, &y)
 		if (IsFuncMenuTarget()) {
-			if (LClickCount > 0) {
-				LClickCount++
+			if (ClickCount > 0) {
+				ClickCount++
 			}
-		} else if (LClickCount > 0
+		} else if (ClickCount > 0
 			&& Abs(x - X_LastClick) < ClickBias
 			&& Abs(y - Y_LastClick) < ClickBias) {
-			LClickCount++
+			ClickCount++
 			X_LastClick := x
 			Y_LastClick := y
 			BlankClick  := IsBlankUIA(x, y)
 		} else {
-			LClickCount := 1
+			ClickCount := 1
 			X_LastClick := x
 			Y_LastClick := y
 			BlankClick  := IsBlankUIA(x, y)
@@ -123,23 +166,23 @@ Global BlankClick   := false
 	}
 
 	EvalClicks() {
-		Global LClickCount, BlankClick
+		Global ClickCount, BlankClick
 
 		if (!BlankClick) {
 			return
 		}
-		if (LClickCount >= 2 && WinExist("ahk_class #32768")) {
+		if (ClickCount >= 2 && WinExist("ahk_class #32768")) {
 			Send("{Escape}")
 			Sleep(Interval)
 		}
 
-		if (LClickCount = 2) {
+		if (ClickCount = 2) {
 			Send("!{Up}")
-		} else if (LClickCount >= 3) {
+		} else if (ClickCount >= 3) {
 			Send("!{Left}")
 		}
 
-		LClickCount := 0
+		ClickCount := 0
 	}
 
 #HotIf
@@ -198,22 +241,18 @@ IsFuncMenuTarget(  ) {
 	}
 }
 
+; 分頁列 : ControlType = 50018 (Tab)
 ; 空白處 : ControlType = 50008 (List)
 ; 快速存取 : ControlType = 50024 (TreeItem)
 ; 文字編輯區域 : ControlType = 50004 (Edit)
-; 檔案/資料夾圖示 : ControlType = 50007 (ListItem)
-; 分頁列 : ControlType = 50018 (Tab)
 ; 所有分頁項目 : ControlType = 50019 (TabItem)
+; 檔案/資料夾圖示 : ControlType = 50007 (ListItem)
 
 IsBlankUIA( x, y ) {
 	return (GetControlType(x, y) = 50008)
 }
 
-IsCacheUIA( x, y ) {
-	return (GetControlType(x, y) = 50024)
-}
-
-IsItemUIA( x, y ) {
+IsListItemUIA( x, y ) {
 	return (GetControlType(x, y) = 50004 || GetControlType(x, y) = 50007)
 }
 
@@ -286,4 +325,90 @@ IsFolderUIA( x, y ) {
 	}
 
 	return -1
+}
+
+GetTreeItemPosition( element, &x, &y ) {
+	try {
+		location := element.Location
+	} catch {
+		return false
+	}
+	x := location.x + 20
+	y := location.y + (location.h // 2)
+	return true
+}
+
+IsTreeItemUIA( x, y ) {
+	try {
+		element := UIA.SmallestElementFromPoint(x, y)
+		if (element && element.ControlType = 50024) {
+			return element
+		}
+	}
+
+	; Explorer 放 TreeItem 的容器
+	; 第8層: ControlType=50033  ClassName=ShellTabWindowClass  Name=Explorer 
+	; 第7層: ControlType=50033  ClassName=DUIViewWndClassName  Name=
+	; 第6層: ControlType=50033  ClassName=HWNDView             Name=檔案總管窗格
+	; 第5層: ControlType=50033  ClassName=Element              Name=[資料夾配置] 窗格
+	; 第4層: ControlType=50033  ClassName=ProperTreeHost       Name=控制主機
+	; 第3層: ControlType=50023  ClassName=SysTreeView32        Name=瀏覽窗格
+	; 第2層: ControlType=50024  ClassName=                     Name=桌面
+	; 第1層: ControlType=50024  ClassName=                     Name=本機
+
+	try {
+		container := UIA.SmallestElementFromPoint(x, y)
+		loop 6 { ;; 8~3層
+			if (!container) {
+				return 0
+			}
+			if (container.ControlType = 50023) {
+				break
+			}
+			container := container.Parent
+		}
+		if (!container || container.ControlType != 50023) {
+			return 0
+		}
+
+		for element in container.FindAll({ControlType: 50024}) {
+			location := element.Location
+			if (y >= location.y && y <= location.y + location.h) {
+				return element
+			}
+		}
+	}
+
+	return 0
+}
+
+MenuOptionCheck( option ) {
+	menuHwnd := WinExist("ahk_class #32768")
+	if (!menuHwnd) {
+		return false
+	}
+
+	try {
+		menu := UIA.ElementFromHandle(menuHwnd)
+	} catch {
+		return false
+	}
+	if (!menu) {
+		return false
+	}
+
+	try {
+		items := menu.FindAll({ControlType: 50011})
+	} catch {
+		return false
+	}
+
+	for item in items {
+		try {
+			if (InStr(item.Name, option)) {
+				return true
+			}
+		}
+	}
+	return false
 }
