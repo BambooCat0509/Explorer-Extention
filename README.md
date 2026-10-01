@@ -17,7 +17,7 @@ An AutoHotkey script designed to enhance navigation and file management in the n
 >
 > * Explicitly supports **Windows 11 Native System** only.
 >
-> * Must be executed using **AutoHotkey v2** (if running from source script).
+> * If running directly from source code, please execute with **AutoHotkey v2** and ensure `UIA.ahk` is located in the same directory.
 >
 > * This script automatically runs with **Administrator privileges**.
 
@@ -58,7 +58,7 @@ To run this script, make sure AutoHotkey is installed. You can download it from:
 >
 > * 本拓展僅確保支援 **Windows 11 原生檔案管理系統**。
 >
-> * 若直接執行原始碼，請使用 **AutoHotkey v2** 版本執行。
+> * 若直接執行原始碼，請使用 **AutoHotkey v2** 版本執行，並將 UIA.ahk 置於相同目錄下。
 >
 > * 本拓展將**自動以系統管理員身分執行**。
 
